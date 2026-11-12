@@ -385,7 +385,12 @@ export default {
           sb.finish(txn, 'failed', 'original transaction not found');
           return postResult(txn, b, 'R000002', 'The OriginalTransactionID is invalid.');
         }
-        if (!sb.reverse(original, 'reversal API')) {
+        const blocker = sb.reversalBlocker(original);
+        if (blocker === 'insufficient_float' || blocker === 'insufficient_customer_balance') {
+          sb.finish(txn, 'failed', blocker.replace(/_/g, ' '));
+          return postResult(txn, b, 1, 'The balance is insufficient for the transaction.');
+        }
+        if (blocker || !sb.reverse(original, 'reversal API')) {
           sb.finish(txn, 'failed', 'already reversed');
           return postResult(txn, b, 'R000001', 'The transaction has already been reversed.');
         }

@@ -145,8 +145,13 @@ export default {
       if (!market(ctx)) return;
       const amid = ctx.body.transaction?.airtel_money_id;
       const original = sb.findTxn((t) => t.provider === ID && t.kind === 'collection' && t.receipt === amid);
-      if (!original || !sb.reverse(original, 'refund API')) {
-        return ctx.send(200, { data: {}, status: { code: '200', message: original ? 'Transaction already refunded' : 'Transaction not found', result_code: 'ESB000045', success: false } });
+      const blocker = original ? sb.reversalBlocker(original) : 'not_found';
+      if (blocker || !sb.reverse(original, 'refund API')) {
+        const message = {
+          not_found: 'Transaction not found',
+          insufficient_float: 'Insufficient balance in merchant account to refund',
+        }[blocker] || 'Transaction already refunded';
+        return ctx.send(200, { data: {}, status: { code: '200', message, result_code: 'ESB000045', success: false } });
       }
       ctx.send(200, { data: { transaction: { airtel_money_id: amid, status: 'SUCCESS' } }, status: okStatus(undefined) });
     };

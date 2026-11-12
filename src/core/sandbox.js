@@ -171,6 +171,9 @@ export class Sandbox extends EventEmitter {
   // ---- tokens -------------------------------------------------------------
 
   issueToken(provider, ttlSeconds, length = 28) {
+    // Drop expired tokens so a long session does not grow without bound.
+    const now = Date.now();
+    for (const [t, info] of this.tokens) if (info.expiresAt < now) this.tokens.delete(t);
     const token = randomAlnum(length);
     this.tokens.set(token, { provider, expiresAt: Date.now() + ttlSeconds * 1000 });
     return token;
@@ -333,9 +336,24 @@ export class Sandbox extends EventEmitter {
     return outcome;
   }
 
-  /** Undo a completed payment. Returns false when there is nothing to reverse. */
+  /**
+   * Why a payment cannot be reversed right now, or null when it can.
+   * Money has to come from somewhere: refunding a collection needs enough in the
+   * business float, and pulling back a payout needs the customer to still have it.
+   */
+  reversalBlocker(txn) {
+    if (!txn || txn.status === 'reversed') return 'already_reversed';
+    if (txn.status !== 'success' || txn.kind === 'query') return 'not_reversible';
+    if (txn.kind === 'collection' && this.float(txn.provider) < txn.amount) return 'insufficient_float';
+    if (txn.kind === 'disbursement' && txn.msisdn && this.wallet(txn.msisdn).balance < txn.amount) {
+      return 'insufficient_customer_balance';
+    }
+    return null;
+  }
+
+  /** Undo a completed payment. Returns false when it cannot be reversed; see reversalBlocker(). */
   reverse(txn, via = 'dashboard') {
-    if (!txn || txn.status !== 'success' || txn.kind === 'query') return false;
+    if (this.reversalBlocker(txn)) return false;
     const wallet = txn.msisdn ? this.wallet(txn.msisdn) : { balance: 0 };
     if (txn.kind === 'collection') {
       wallet.balance += txn.amount;

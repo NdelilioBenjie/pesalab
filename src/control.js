@@ -92,7 +92,14 @@ export function createControl(sb, info) {
   r.post('/api/transactions/:id/reverse', (c) => {
     const txn = sb.txns.get(c.params.id);
     if (!txn) return json(c.res, 404, { error: 'No such transaction' });
-    return sb.reverse(txn) ? json(c.res, 200, txn) : json(c.res, 409, { error: 'Only a successful payment can be reversed' });
+    const blocker = sb.reversalBlocker(txn);
+    if (!blocker && sb.reverse(txn)) return json(c.res, 200, txn);
+    const error = {
+      insufficient_float: 'Your business float does not have enough to refund this payment. Top it up under Customers.',
+      insufficient_customer_balance: 'The customer no longer has enough balance to reverse this payout.',
+      already_reversed: 'This payment has already been reversed.',
+    }[blocker] || 'Only a successful payment can be reversed';
+    return json(c.res, 409, { error, reason: blocker });
   });
 
   r.post('/api/transactions/:id/callbacks/:cb/replay', async (c) => {
