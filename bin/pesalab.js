@@ -23,6 +23,10 @@ Options
       --yas-callback <url>      Where Mixx by Yas callbacks are posted
       --azampay-callback <url>  Where AzamPay callbacks are posted
       --data-dir <dir>      Where keys are kept between runs (default ./.pesalab)
+      --allow-origin <url>  Also accept browser requests from this origin
+                            (repeatable or comma-separated; "*" allows any)
+      --allow-host <name>   Also accept requests addressed to this host name
+                            (repeatable or comma-separated)
   -h, --help
   -v, --version
 `;
@@ -42,6 +46,8 @@ try {
       'yas-callback': { type: 'string' },
       'azampay-callback': { type: 'string' },
       'data-dir': { type: 'string' },
+      'allow-origin': { type: 'string', multiple: true },
+      'allow-host': { type: 'string', multiple: true },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -90,6 +96,8 @@ try {
     port: Number(args.port || env.PESALAB_PORT || 4010),
     host: args.host || env.PESALAB_HOST || '127.0.0.1',
     dataDir: path.resolve(args['data-dir'] || env.PESALAB_DATA_DIR || '.pesalab'),
+    allowedOrigins: [...(args['allow-origin'] || []), env.PESALAB_ALLOWED_ORIGINS || ''].flatMap((v) => v.split(',')),
+    allowedHosts: [...(args['allow-host'] || []), env.PESALAB_ALLOWED_HOSTS || ''].flatMap((v) => v.split(',')),
     settings,
   });
 

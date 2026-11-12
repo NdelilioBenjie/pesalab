@@ -15,14 +15,30 @@ a button, a test phone number, or one line in a test.
 
 No account, no internet, no tunnel, no dependencies.
 
+![A Kenyan STK push from a Node script appears on the simulated phone, the customer enters a PIN, and the payment shows as paid with its callback delivered](https://raw.githubusercontent.com/NdelilioBenjie/pesalab/main/media/demo.gif)
+
 ## Start it
 
 Requires Node.js 18.17 or newer.
 
 ```bash
+npx pesalab
+```
+
+Or add it to a project with `npm install --save-dev pesalab`, or run it from a
+clone:
+
+```bash
 git clone https://github.com/NdelilioBenjie/pesalab.git
 cd pesalab
 node bin/pesalab.js
+```
+
+Or with Docker:
+
+```bash
+docker build -t pesalab https://github.com/NdelilioBenjie/pesalab.git
+docker run --rm -p 4010:4010 pesalab
 ```
 
 Open the dashboard at <http://127.0.0.1:4010/_pesalab/>. The **Connect your app**
@@ -166,7 +182,12 @@ pesalab [options]
     --strict              Reject wrong credentials like the real APIs
     --airtel-callback, --yas-callback, --azampay-callback <url>
     --data-dir <dir>      Where the Tanzanian RSA key is kept (default ./.pesalab)
+    --allow-origin <url>  Also accept browser requests from this origin ("*" for any)
+    --allow-host <name>   Also accept requests addressed to this domain name
 ```
+
+Both `--allow-*` flags can be repeated or given a comma-separated list, or set
+through `PESALAB_ALLOWED_ORIGINS` and `PESALAB_ALLOWED_HOSTS`.
 
 ## Control API
 
@@ -177,7 +198,7 @@ Everything the dashboard does is a plain HTTP call under `/_pesalab/api`.
 | `GET /state` | Settings, credentials, customers, payments, request log |
 | `GET /transactions?status=pending&provider=mpesa-tz` | Find payments |
 | `POST /transactions/:id/resolve` `{"outcome":"cancelled"}` or `{"pin":"1234"}` | Answer a prompt |
-| `POST /transactions/:id/reverse` | Reverse a completed payment |
+| `POST /transactions/:id/reverse` | Reverse a completed payment (409 if the float or the customer cannot cover it) |
 | `POST /transactions/:id/callbacks/:cb/replay` | Send a callback again |
 | `POST /scenarios` `{"outcomes":[...]}` · `DELETE /scenarios` | Script upcoming requests |
 | `PATCH /settings` | Change mode, timing, strictness, callback trouble, callback URLs |
@@ -191,6 +212,13 @@ Everything the dashboard does is a plain HTTP call under `/_pesalab/api`.
 - State lives in memory. Restarting pesalab clears payments and customers.
 - It is a test tool. It binds to `127.0.0.1` by default and has no authentication
   on the dashboard, so do not expose it to a network you do not trust.
+- Browser requests are only accepted from pages on your own machine, and only
+  requests addressed to localhost, an IP address or a single-label name such as a
+  Docker service are answered. This stops a website you visit from driving
+  pesalab through your browser, including through DNS rebinding. Use
+  `--allow-origin` and `--allow-host` when you mean to reach it another way.
+- Reversals follow the money: a refund fails if your float cannot cover it, and
+  reversing a payout fails if the customer no longer has the funds.
 - It imitates request and response shapes, not provider infrastructure: there are
   no rate limits, IP allow-lists or settlement delays.
 - Kenyan `SecurityCredential` values and Airtel disbursement PINs are accepted

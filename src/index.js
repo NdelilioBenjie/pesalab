@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { Sandbox, OUTCOMES, MAGIC_SUFFIXES } from './core/sandbox.js';
 import { Router, CORS, handleProviderRequest, normalisePath } from './core/http.js';
 import { createControl } from './control.js';
+import { createGuard } from './core/guard.js';
 import mpesaKe from './providers/mpesa-ke.js';
 import mpesaTz from './providers/mpesa-tz.js';
 import airtel from './providers/airtel.js';
@@ -26,9 +27,12 @@ export const VERSION = JSON.parse(fs.readFileSync(new URL('../package.json', imp
  * @param {string} [options.dataDir]    where the Tanzanian RSA key is kept between runs
  * @param {object} [options.settings]   see docs: mode, autoOutcome, autoDelayMs, callbacks ...
  * @param {object} [options.credentials] override the default sandbox credentials
+ * @param {string[]} [options.allowedOrigins] browser origins allowed besides localhost pages ("*" allows any)
+ * @param {string[]} [options.allowedHosts]   Host names allowed besides localhost, IPs and single-label names
  */
 export async function start(options = {}) {
   const host = options.host || '127.0.0.1';
+  const guard = createGuard({ allowedHosts: options.allowedHosts, allowedOrigins: options.allowedOrigins });
   const sb = new Sandbox(options);
   sb.on('error-log', (e) => (options.onError || console.error)(e));
 
@@ -48,6 +52,12 @@ export async function start(options = {}) {
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, 'http://pesalab.local');
     const path = normalisePath(url.pathname);
+
+    const refused = guard.check(req);
+    if (refused) {
+      res.writeHead(refused.status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+      return res.end(JSON.stringify(refused.body));
+    }
 
     if (path === '/') {
       res.writeHead(302, { location: '/_pesalab/' });

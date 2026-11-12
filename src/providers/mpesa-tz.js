@@ -235,11 +235,17 @@ export default {
           ids: { ConversationID: hex(32), ThirdPartyConversationID: String(b.input_ThirdPartyConversationID) },
           request: b, warnings: ctx.warnings,
         });
-        if (sb.reverse(original, 'reversal API')) {
+        const blocker = sb.reversalBlocker(original);
+        if (!blocker && sb.reverse(original, 'reversal API')) {
           sb.finish(txn, 'success');
           txn.receipt = transactionId();
         } else {
-          sb.finish(txn, 'failed', 'transaction was already reversed');
+          const why = {
+            already_reversed: 'transaction was already reversed',
+            insufficient_float: 'not enough balance in the business float to refund it',
+            insufficient_customer_balance: 'the customer no longer has the money',
+          }[blocker] || 'transaction cannot be reversed';
+          sb.finish(txn, 'failed', why);
         }
         reply(ctx, txn);
       });
