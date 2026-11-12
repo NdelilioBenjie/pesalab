@@ -1,0 +1,8 @@
+node_modules
+.git
+.github
+.pesalab
+test
+examples
+support
+*.log

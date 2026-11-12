@@ -2,6 +2,15 @@
   "name": "pesalab",
   "version": "0.1.0",
   "description": "A local mobile money sandbox for East Africa. Imitates M-Pesa (Kenya and Tanzania), Airtel Money, Mixx by Yas and AzamPay on your laptop, with a dashboard to trigger every payment outcome.",
+  "homepage": "https://github.com/NdelilioBenjie/pesalab#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NdelilioBenjie/pesalab.git"
+  },
+  "bugs": {
+    "url": "https://github.com/NdelilioBenjie/pesalab/issues"
+  },
+  "author": "Benjamen Ayo",
   "type": "module",
   "bin": {
     "pesalab": "bin/pesalab.js"
