@@ -1,0 +1,4 @@
+node_modules/
+.pesalab/
+*.log
+.DS_Store

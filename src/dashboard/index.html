@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pesalab</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --chalk: #edf0ee;
+    --paper: #ffffff;
+    --ink: #14262b;
+    --muted: #5d6f73;
+    --line: #d3dad7;
+    --teal: #0b6b6b;
+    --teal-soft: #dcecea;
+    --amber: #a86a00;
+    --amber-soft: #fbefd2;
+    --red: #a8281f;
+    --red-soft: #f8e1de;
+    --green: #1d6f3c;
+    --green-soft: #dff0e3;
+    --lcd: #d5dfc6;
+    --lcd-ink: #1d2a16;
+    --ui: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font: 14px/1.45 var(--ui); color: var(--ink); background: var(--chalk); }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  h1, h2, h3, p { margin: 0; }
+  code, pre, .mono { font-family: var(--mono); font-size: 12.5px; }
+
+  header { display: flex; align-items: center; gap: 20px; padding: 10px 20px; background: var(--ink); color: #fff; flex-wrap: wrap; }
+  header h1 { font-size: 18px; font-weight: 650; letter-spacing: -0.01em; }
+  header h1 small { font-weight: 400; font-size: 12px; opacity: .65; margin-left: 6px; }
+  nav { display: flex; gap: 2px; flex-wrap: wrap; }
+  nav button { background: none; border: 0; color: #c9d6d4; padding: 7px 12px; border-radius: 6px; }
+  nav button[aria-current="true"] { background: #fff; color: var(--ink); font-weight: 600; }
+  nav button .count { background: #e9b949; color: var(--ink); border-radius: 9px; padding: 0 6px; margin-left: 5px; font-size: 12px; font-weight: 600; }
+  .mode { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #c9d6d4; }
+  .seg { display: inline-flex; border: 1px solid #47595d; border-radius: 7px; overflow: hidden; }
+  .seg button { background: none; border: 0; color: #c9d6d4; padding: 5px 11px; }
+  .seg button[aria-pressed="true"] { background: #e9b949; color: var(--ink); font-weight: 600; }
+  header select { background: var(--ink); color: #fff; border: 1px solid #47595d; border-radius: 6px; padding: 4px 6px; }
+
+  main { padding: 18px 20px 40px; }
+  .payments { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; align-items: start; }
+  .payments.with-detail { grid-template-columns: 300px minmax(0, 1fr) minmax(340px, 440px); }
+  .payments > * { min-width: 0; }
+  @media (max-width: 1150px) { .payments, .payments.with-detail { grid-template-columns: minmax(0, 1fr); } }
+
+  h2 { font-size: 15px; font-weight: 650; margin-bottom: 10px; }
+  h3 { font-size: 13px; font-weight: 650; margin: 16px 0 6px; }
+  .hint { color: var(--muted); font-size: 13px; }
+  .panel { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; }
+  .pad { padding: 14px 16px; }
+
+  /* The simulated handset: the one loud element on the page */
+  .phone { background: var(--ink); border-radius: 18px; padding: 12px 12px 14px; margin-bottom: 14px; color: #fff; }
+  .phone .who { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; opacity: .85; padding: 0 4px 8px; }
+  .lcd { background: var(--lcd); color: var(--lcd-ink); border-radius: 6px; padding: 12px; font-family: var(--mono); font-size: 13px; line-height: 1.5; box-shadow: inset 0 0 0 2px rgba(29,42,22,.18); }
+  .lcd .sim { font-size: 11px; border-bottom: 1px dashed rgba(29,42,22,.45); padding-bottom: 5px; margin-bottom: 7px; display: flex; justify-content: space-between; }
+  .lcd .amount { font-weight: 700; font-size: 15px; }
+  .lcd form { display: flex; gap: 6px; margin-top: 9px; align-items: center; }
+  .lcd input { width: 74px; background: #eef3e6; border: 1.5px solid var(--lcd-ink); border-radius: 3px; padding: 3px 6px; font-family: var(--mono); letter-spacing: .25em; }
+  .lcd button { background: var(--lcd-ink); color: var(--lcd); border: 0; border-radius: 3px; padding: 4px 10px; font-family: var(--mono); }
+  .lcd button.plain { background: none; color: var(--lcd-ink); border: 1.5px solid var(--lcd-ink); }
+  .phone .quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .phone .quick button { background: none; border: 1px solid #55686c; color: #dbe5e3; border-radius: 6px; padding: 3px 8px; font-size: 12px; }
+  .phone .quick button:hover { border-color: #fff; color: #fff; }
+  .phone .scripted { font-size: 12px; margin-top: 9px; color: #e9b949; }
+  .empty { border: 1.5px dashed var(--line); border-radius: 12px; padding: 18px; color: var(--muted); font-size: 13px; }
+
+  .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip { border: 1px solid var(--line); background: var(--paper); border-radius: 14px; padding: 3px 11px; font-size: 13px; }
+  .chip[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .btn { border: 1px solid var(--line); background: var(--paper); border-radius: 6px; padding: 5px 11px; }
+  .btn:hover { border-color: var(--ink); }
+  .btn.primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+  .btn.danger { color: var(--red); }
+  .field { border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; background: #fff; }
+  .field.wide { width: 100%; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-weight: 600; font-size: 12.5px; color: var(--muted); padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { padding: 8px 12px; border-bottom: 1px solid #e7ecea; vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  tbody tr.row { cursor: pointer; }
+  tbody tr.row:hover { background: #f5f8f7; }
+  tbody tr.row[aria-selected="true"] { background: var(--teal-soft); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .sub { color: var(--muted); font-size: 12.5px; }
+  .tablewrap { overflow-x: auto; }
+
+  .tag { display: inline-block; border-radius: 4px; padding: 1px 7px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+  .tag.pending { background: var(--amber-soft); color: var(--amber); }
+  .tag.success { background: var(--green-soft); color: var(--green); }
+  .tag.failed { background: var(--red-soft); color: var(--red); }
+  .tag.reversed { background: #e4e7ef; color: #3b4a7a; }
+  .tag.warn { background: var(--amber-soft); color: var(--amber); font-weight: 500; }
+  .flag { font-size: 11px; font-weight: 700; border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; margin-right: 5px; color: var(--muted); }
+
+  .detail header.dh { all: unset; display: flex; justify-content: space-between; align-items: start; gap: 10px; }
+  .detail pre { background: #f3f6f5; border: 1px solid #e3e9e6; border-radius: 6px; padding: 9px 10px; overflow: auto; max-height: 260px; margin: 6px 0 0; white-space: pre-wrap; word-break: break-word; }
+  .timeline { list-style: none; margin: 0; padding: 0; border-left: 2px solid var(--line); }
+  .timeline li { padding: 0 0 8px 12px; position: relative; }
+  .timeline li::before { content: ""; position: absolute; left: -5px; top: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--teal); }
+  .timeline time { color: var(--muted); font-family: var(--mono); font-size: 12px; margin-right: 6px; }
+  .warning { background: var(--amber-soft); border-left: 3px solid #e9b949; padding: 7px 10px; border-radius: 0 6px 6px 0; margin-bottom: 6px; font-size: 13px; }
+  .attempt { display: flex; gap: 8px; align-items: baseline; font-size: 13px; padding: 3px 0; flex-wrap: wrap; }
+  details summary { cursor: pointer; color: var(--teal); font-size: 13px; margin-top: 6px; }
+  dl.kv { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; margin: 0; }
+  dl.kv dt { color: var(--muted); }
+  dl.kv dd { margin: 0; word-break: break-all; }
+
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 18px; align-items: start; }
+  .setting { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 9px 0; border-bottom: 1px solid #e7ecea; }
+  .setting:last-child { border-bottom: 0; }
+  .setting label { font-weight: 600; }
+  .setting p { color: var(--muted); font-size: 13px; max-width: 46ch; }
+  .setting input[type="number"] { width: 100px; }
+  .setting input[type="url"] { width: 260px; }
+  .copy { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
+  .copy code { background: #f3f6f5; border: 1px solid #e3e9e6; border-radius: 5px; padding: 3px 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+  .copy button { flex: none; }
+  #toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 8px 14px; border-radius: 8px; opacity: 0; pointer-events: none; transition: opacity .15s; }
+  #toast.show { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>pesalab<small id="version"></small></h1>
+  <nav id="nav" aria-label="Sections"></nav>
+  <div class="mode">
+    <span>Prompts are answered</span>
+    <span class="seg" role="group" aria-label="Mode">
+      <button data-action="mode" data-value="manual">by me</button>
+      <button data-action="mode" data-value="auto">automatically</button>
+    </span>
+    <select id="autoOutcome" aria-label="Automatic outcome" hidden></select>
+  </div>
+</header>
+<main id="main"><p class="hint">Connecting to the sandbox…</p></main>
+<div id="toast" role="status"></div>
+
+<script>
+const API = '/_pesalab/api/';
+const LABEL = { success: 'Paid', cancelled: 'Cancelled', timeout: 'No answer', wrong_pin: 'Wrong PIN', insufficient_funds: 'Not enough balance', failed: 'Failed' };
+const KIND = { collection: 'Payment in', disbursement: 'Payout', reversal: 'Reversal', query: 'Query' };
+const VIEWS = [['payments', 'Payments'], ['requests', 'API requests'], ['customers', 'Customers'], ['settings', 'Settings'], ['connect', 'Connect your app']];
+
+let state = null;
+let view = location.hash.slice(1) || 'payments';
+let selected = null;
+let providerFilter = 'all';
+let queuePick = 'cancelled';
+
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const money = (cur, n) => `${cur} ${Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
+const clock = (iso) => new Date(iso).toLocaleTimeString([], { hour12: false });
+const pretty = (v) => esc(JSON.stringify(v, null, 2));
+const providerName = (id) => state.providers.find((p) => p.id === id)?.name || id;
+
+async function api(path, method = 'GET', body) {
+  const res = await fetch(API + path, { method, headers: body ? { 'content-type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) toast(data.error || `Request failed (${res.status})`);
+  return data;
+}
+
+function toast(text) {
+  const t = $('#toast');
+  t.textContent = text;
+  t.classList.add('show');
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+async function load() {
+  try {
+    state = await (await fetch(API + 'state')).json();
+    render();
+  } catch {
+    $('#main').innerHTML = '<p class="hint">The sandbox is not responding. Is pesalab still running?</p>';
+  }
+}
+
+// ---------- header ----------
+function renderHeader() {
+  const waiting = state.transactions.filter((t) => t.prompt && !t.prompt.planned).length;
+  $('#version').textContent = 'v' + state.version;
+  $('#nav').innerHTML = VIEWS.map(([id, label]) =>
+    `<button data-action="view" data-value="${id}" aria-current="${view === id}">${label}${id === 'payments' && waiting ? `<span class="count">${waiting}</span>` : ''}</button>`).join('');
+  document.querySelectorAll('[data-action="mode"]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.value === state.settings.mode)));
+  const sel = $('#autoOutcome');
+  sel.hidden = state.settings.mode !== 'auto';
+  if (document.activeElement !== sel) {
+    sel.innerHTML = state.outcomes.map((o) => `<option value="${o}" ${o === state.settings.autoOutcome ? 'selected' : ''}>${LABEL[o]}</option>`).join('');
+  }
+  document.title = waiting ? `(${waiting}) pesalab` : 'pesalab';
+}
+
+// ---------- payments ----------
+function promptCard(t) {
+  const p = t.prompt;
+  const scripted = p.planned
+    ? `<div class="scripted">Scripted by ${esc(p.source)}: ${LABEL[p.planned].toLowerCase()}</div>`
+    : `<div class="quick">
+         <button data-action="resolve" data-id="${t.id}" data-value="insufficient_funds">Not enough balance</button>
+         <button data-action="resolve" data-id="${t.id}" data-value="timeout">Ignore it</button>
+         <button data-action="resolve" data-id="${t.id}" data-value="failed">Network failure</button>
+       </div>`;
+  const entry = p.planned ? '' : `
+      <form data-pin="${t.id}">
+        <label for="pin-${t.id}">PIN</label>
+        <input id="pin-${t.id}" name="pin" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="1234">
+        <button type="submit">Send</button>
+        <button type="button" class="plain" data-action="resolve" data-id="${t.id}" data-value="cancelled">Cancel</button>
+      </form>`;
+  return `
+    <div class="who"><span>${esc(t.customerName)} · ${esc(t.msisdn)}</span><span data-expires="${p.expiresAt}"></span></div>
+    <div class="lcd">
+      <div class="sim"><span>${esc(providerName(t.provider))}</span><span>simulated</span></div>
+      <div>Pay <span class="amount">${money(t.currency, t.amount)}</span></div>
+      <div>to ${esc(t.merchant || 'merchant')}</div>
+      ${t.reference ? `<div>ref ${esc(t.reference)}</div>` : ''}
+      ${entry}
+    </div>
+    ${scripted}`;
+}
+
+// Prompts are keyed DOM nodes so typing a PIN is never interrupted by a refresh.
+function renderPrompts() {
+  const host = $('#prompts');
+  if (!host) return;
+  const pending = state.transactions.filter((t) => t.prompt).reverse();
+  const ids = new Set(pending.map((t) => t.id));
+  host.querySelectorAll('.phone').forEach((el) => { if (!ids.has(el.dataset.id)) el.remove(); });
+  for (const t of pending) {
+    if (host.querySelector(`.phone[data-id="${t.id}"]`)) continue;
+    const el = document.createElement('div');
+    el.className = 'phone';
+    el.dataset.id = t.id;
+    el.innerHTML = promptCard(t);
+    host.append(el);
+  }
+  $('#noPrompts').hidden = pending.length > 0;
+  tick();
+}
+
+function tick() {
+  document.querySelectorAll('[data-expires]').forEach((el) => {
+    const s = Math.max(0, Math.round((new Date(el.dataset.expires) - Date.now()) / 1000));
+    el.textContent = `${s}s left`;
+  });
+}
+setInterval(tick, 1000);
+
+function statusTag(t) {
+  if (t.status === 'pending') return `<span class="tag pending">${t.prompt ? 'Waiting for customer' : 'Processing'}</span>`;
+  if (t.status === 'reversed') return '<span class="tag reversed">Reversed</span>';
+  if (t.status === 'success') return `<span class="tag success">${t.kind === 'collection' ? 'Paid' : 'Done'}</span>`;
+  return `<span class="tag failed">${LABEL[t.outcome] || 'Failed'}</span>`;
+}
+
+function callbackSummary(t) {
+  if (!t.callbacks.length) return '<span class="sub">none</span>';
+  const last = t.callbacks.at(-1).attempts.at(-1);
+  if (!last) return '<span class="sub">sending…</span>';
+  if (last.dropped) return '<span class="tag warn">dropped</span>';
+  return last.ok ? `<span class="sub">${last.status} · ${last.ms}ms</span>` : `<span class="tag failed">${esc(last.status || 'unreachable')}</span>`;
+}
+
+function renderTable() {
+  const list = state.transactions.filter((t) => providerFilter === 'all' || t.provider === providerFilter);
+  const chips = [['all', 'All providers'], ...state.providers.map((p) => [p.id, p.name])]
+    .map(([id, label]) => `<button class="chip" data-action="filter" data-value="${id}" aria-pressed="${providerFilter === id}">${esc(label)}</button>`).join('');
+  const queue = state.queue.length
+    ? `<span class="sub">Next: ${state.queue.map((o) => LABEL[o]).join(', ')}</span> <button class="btn" data-action="clearQueue">Clear</button>` : '';
+  const rows = list.map((t) => `
+    <tr class="row" data-action="select" data-id="${t.id}" aria-selected="${selected === t.id}" tabindex="0">
+      <td class="mono">${clock(t.createdAt)}</td>
+      <td><span class="flag">${t.country}</span>${esc(providerName(t.provider))}<div class="sub">${KIND[t.kind]}${t.ids.operator ? ' · ' + esc(t.ids.operator) : ''}</div></td>
+      <td>${esc(t.msisdn || '—')}<div class="sub">${esc(t.customerName)}</div></td>
+      <td class="num">${t.kind === 'query' ? '—' : money(t.currency, t.amount)}</td>
+      <td>${statusTag(t)}${t.warnings.length ? ` <span class="tag warn" title="${esc(t.warnings.join('\n'))}">${t.warnings.length} warning${t.warnings.length > 1 ? 's' : ''}</span>` : ''}</td>
+      <td>${callbackSummary(t)}</td>
+      <td class="mono">${esc(t.reference || t.description)}</td>
+    </tr>`).join('');
+  return `
+    <div class="toolbar">${chips}</div>
+    <div class="toolbar">
+      <label for="queuePick" class="hint">Script the next request:</label>
+      <select id="queuePick" class="field">${state.outcomes.map((o) => `<option value="${o}" ${o === queuePick ? 'selected' : ''}>${LABEL[o]}</option>`).join('')}</select>
+      <button class="btn" data-action="queue">Add to queue</button> ${queue}
+    </div>
+    <div class="panel tablewrap">
+      ${list.length ? `<table>
+        <thead><tr><th>Time</th><th>Provider</th><th>Customer</th><th style="text-align:right">Amount</th><th>Status</th><th>Callback</th><th>Reference</th></tr></thead>
+        <tbody>${rows}</tbody></table>`
+      : `<div class="pad hint">No payments yet. Send a request from your app, or open <a href="#connect" data-action="view" data-value="connect">Connect your app</a> for base URLs, credentials and a ready-made curl command.</div>`}
+    </div>`;
+}
+
+function renderDetail() {
+  const t = state.transactions.find((x) => x.id === selected);
+  if (!t) return '';
+  const callbacks = t.callbacks.map((c) => `
+    <div style="margin-bottom:12px">
+      <div class="attempt"><strong>${esc(c.label)}</strong><span class="mono sub">${esc(c.url || 'no URL')}</span></div>
+      ${c.attempts.map((a) => `<div class="attempt">
+          <span class="mono sub">${clock(a.at)}</span>
+          ${a.dropped ? '<span class="tag warn">dropped on purpose</span>' : a.ok ? `<span class="tag success">${a.status}</span>` : `<span class="tag failed">${esc(a.status || a.error)}</span>`}
+          <span class="sub">${a.ms}ms${a.replay ? ' · replay' : ''}${a.duplicate ? ' · duplicate' : ''}</span>
+          ${a.response ? `<span class="mono sub" title="${esc(a.response)}">replied ${esc(a.response.slice(0, 60))}</span>` : ''}
+        </div>`).join('')}
+      ${c.url ? `<button class="btn" data-action="replay" data-id="${t.id}" data-cb="${c.id}">Send again</button>` : ''}
+      <details><summary>Payload sent to your app</summary><pre>${pretty(c.payload)}</pre></details>
+    </div>`).join('');
+  return `
+    <aside class="panel pad detail">
+      <div class="dh" style="display:flex;justify-content:space-between;gap:10px">
+        <div><h2 style="margin:0">${t.kind === 'query' ? esc(t.description) : money(t.currency, t.amount)}</h2>
+          <div class="sub">${esc(providerName(t.provider))} · ${KIND[t.kind]} · ${statusTag(t)}</div></div>
+        <button class="btn" data-action="closeDetail" aria-label="Close details">Close</button>
+      </div>
+      ${t.warnings.length ? `<h3>Would this work in production?</h3>${t.warnings.map((w) => `<div class="warning">${esc(w)}</div>`).join('')}` : ''}
+      <h3>What happened</h3>
+      <ul class="timeline">${t.events.map((e) => `<li><time>${clock(e.at)}</time>${esc(e.detail || e.type)}</li>`).join('')}</ul>
+      <h3>Callbacks</h3>
+      ${callbacks || '<p class="hint">No callback for this request. Either this API answers in the response itself, or the customer has not answered yet.</p>'}
+      <h3>Identifiers</h3>
+      <dl class="kv mono">${Object.entries({ pesalab: t.id, receipt: t.receipt, ...t.ids }).filter(([, v]) => v).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+      <details><summary>Request your app sent</summary><pre>${pretty(t.request)}</pre></details>
+      ${t.status === 'success' && t.kind !== 'query' && t.kind !== 'reversal' ? `<p style="margin-top:14px"><button class="btn danger" data-action="reverse" data-id="${t.id}">Reverse this payment</button></p>` : ''}
+    </aside>`;
+}
+
+function renderPayments() {
+  const main = $('#main');
+  if (!$('#prompts')) {
+    main.innerHTML = `
+      <div class="payments" id="paymentsGrid">
+        <section aria-label="Customer phones">
+          <h2>Customer phones</h2>
+          <div id="prompts"></div>
+          <div class="empty" id="noPrompts">Nobody is being asked to pay right now. When your app requests a payment, the prompt appears here and you answer it as the customer.</div>
+          <details style="margin-top:14px"><summary>Pay a Kenyan paybill from a phone</summary>
+            <form id="c2bForm" class="panel pad" style="margin-top:8px;display:grid;gap:7px">
+              <input class="field" name="shortcode" placeholder="Paybill or till, e.g. 600999" required>
+              <input class="field" name="msisdn" placeholder="Customer, e.g. 254708374149" value="254708374149" required>
+              <input class="field" name="amount" type="number" min="1" placeholder="Amount in KES" required>
+              <input class="field" name="billRef" placeholder="Account number (optional)">
+              <button class="btn primary">Pay</button>
+              <p class="hint">Runs the validation and confirmation URLs you registered for that shortcode.</p>
+            </form>
+          </details>
+        </section>
+        <section id="tableHost" aria-label="Payments"></section>
+        <div id="detailHost"></div>
+      </div>`;
+  }
+  renderPrompts();
+  $('#tableHost').innerHTML = `<h2>Payments</h2>${renderTable()}`;
+  const openLabels = [...document.querySelectorAll('#detailHost details[open] > summary')].map((s) => s.textContent);
+  $('#detailHost').innerHTML = renderDetail();
+  document.querySelectorAll('#detailHost details > summary').forEach((s) => { if (openLabels.includes(s.textContent)) s.parentElement.open = true; });
+  $('#paymentsGrid').classList.toggle('with-detail', Boolean(selected && state.transactions.some((t) => t.id === selected)));
+}
+
+// ---------- API requests ----------
+function renderRequests() {
+  const rows = state.requests.map((r) => `
+    <tr>
+      <td class="mono">${clock(r.at)}</td>
+      <td>${esc(providerName(r.provider))}</td>
+      <td class="mono"><strong>${r.method}</strong> ${esc(r.path)}
+        ${r.warnings.map((w) => `<div class="warning" style="margin-top:6px;font-family:var(--ui)">${esc(w)}</div>`).join('')}
+        <details><summary>Request and response</summary><pre>${pretty(r.requestBody)}</pre><pre>${pretty(r.responseBody)}</pre></details>
+      </td>
+      <td><span class="tag ${r.status < 300 ? 'success' : 'failed'}">${r.status}</span>${r.clientGone ? ' <span class="tag warn">client hung up</span>' : ''}</td>
+      <td class="num">${r.ms}ms</td>
+    </tr>`).join('');
+  return `<h2>API requests</h2>
+    <p class="hint" style="margin-bottom:10px">Every call your app made to the sandbox, newest first. Warnings point out things the sandbox let through that the live API would refuse.</p>
+    <div class="panel tablewrap">${state.requests.length
+      ? `<table><thead><tr><th>Time</th><th>Provider</th><th>Call</th><th>Status</th><th style="text-align:right">Took</th></tr></thead><tbody>${rows}</tbody></table>`
+      : '<div class="pad hint">No requests yet.</div>'}</div>`;
+}
+
+// ---------- customers ----------
+function renderCustomers() {
+  const rows = state.wallets.map((w) => `
+    <tr>
+      <td><span class="flag">${w.country}</span><span class="mono">${esc(w.msisdn)}</span></td>
+      <td>${esc(w.name)}${w.note ? `<div class="sub">Test number: ${esc(w.note)}</div>` : ''}</td>
+      <td class="num">${w.currency} <input class="field" style="width:120px;text-align:right" type="number" min="0" value="${w.balance}" data-wallet="${w.msisdn}" data-key="balance" aria-label="Balance of ${esc(w.name)}"></td>
+      <td><input class="field mono" style="width:70px" maxlength="4" value="${esc(w.pin)}" data-wallet="${w.msisdn}" data-key="pin" aria-label="PIN of ${esc(w.name)}"></td>
+    </tr>`).join('');
+  const floats = state.providers.map((p) => `
+    <div class="setting"><div><label>${esc(p.name)}</label><p>Money your business holds. Payouts fail when it runs out.</p></div>
+      <input class="field" type="number" min="0" value="${state.floats[p.id] ?? 5000000}" data-float="${p.id}" aria-label="Float for ${esc(p.name)}"></div>`).join('');
+  return `<div class="grid2">
+    <section><h2>Customers</h2>
+      <p class="hint" style="margin-bottom:10px">Any phone number works. Numbers you have not listed are created with a full wallet and PIN 1234.</p>
+      <div class="panel tablewrap"><table><thead><tr><th>Phone</th><th>Name</th><th style="text-align:right">Balance</th><th>PIN</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <form id="walletForm" class="toolbar" style="margin-top:12px">
+        <input class="field" name="msisdn" placeholder="2557XXXXXXXX or 2547XXXXXXXX" required>
+        <input class="field" name="name" placeholder="Name">
+        <input class="field" name="balance" type="number" min="0" placeholder="Balance">
+        <button class="btn primary">Add customer</button>
+      </form>
+    </section>
+    <section><h2>Your business float</h2><div class="panel pad">${floats}</div></section>
+  </div>`;
+}
+
+// ---------- settings ----------
+function renderSettings() {
+  const s = state.settings;
+  const num = (path, v) => `<input class="field" type="number" min="0" step="100" value="${v}" data-setting="${path}">`;
+  const check = (path, v) => `<input type="checkbox" ${v ? 'checked' : ''} data-setting="${path}">`;
+  const url = (path, v) => `<input class="field" type="url" placeholder="http://localhost:3000/webhooks/…" value="${esc(v)}" data-setting="${path}">`;
+  const row = (id, label, help, control) => `<div class="setting"><div><label>${label}</label><p>${help}</p></div>${control}</div>`;
+  return `<div class="grid2">
+    <section><h2>Timing</h2><div class="panel pad">
+      ${row('', 'Prompt time limit (ms)', 'How long a prompt waits for you before the customer counts as not answering.', num('promptTimeoutMs', s.promptTimeoutMs))}
+      ${row('', 'Scripted customer delay (ms)', 'How long automatic and scripted customers take to answer.', num('autoDelayMs', s.autoDelayMs))}
+      ${row('', 'API latency (ms)', 'Extra delay added to every API response.', num('latencyMs', s.latencyMs))}
+    </div>
+    <h2 style="margin-top:18px">Checks</h2><div class="panel pad">
+      ${row('', 'Strict credentials', 'Refuse wrong keys, passwords and session IDs the way the live APIs do. When off, they are accepted with a warning.', check('strict', s.strict))}
+      ${row('', 'Test phone numbers', 'Numbers ending 00001 to 00005 always pay, lack balance, mistype the PIN, cancel or never answer.', check('magicNumbers', s.magicNumbers))}
+    </div></section>
+    <section><h2>Callback trouble</h2><div class="panel pad">
+      ${row('', 'Drop callbacks', 'The payment goes through but your app is never told. Tests that you poll for the result.', check('callbacks.drop', s.callbacks.drop))}
+      ${row('', 'Send every callback twice', 'Tests that your handler is idempotent.', check('callbacks.duplicate', s.callbacks.duplicate))}
+      ${row('', 'Delay callbacks (ms)', 'Callbacks arrive late.', num('callbacks.delayMs', s.callbacks.delayMs))}
+    </div>
+    <h2 style="margin-top:18px">Callback URLs</h2><div class="panel pad">
+      <p class="hint" style="margin-bottom:6px">M-Pesa takes the callback URL in each request. These three providers use one URL registered with them, so set it here.</p>
+      ${row('', 'Airtel Money', '', url('callbackUrls.airtel', s.callbackUrls.airtel))}
+      ${row('', 'Mixx by Yas', '', url('callbackUrls.yas', s.callbackUrls.yas))}
+      ${row('', 'AzamPay', '', url('callbackUrls.azampay', s.callbackUrls.azampay))}
+    </div>
+    <p style="margin-top:18px"><button class="btn danger" data-action="reset">Clear all payments and restore defaults</button></p>
+    </section></div>`;
+}
+
+// ---------- connect ----------
+function copyRow(label, value) {
+  return `<div class="sub">${label}</div><div class="copy"><code title="${esc(value)}">${esc(value)}</code><button class="btn" data-action="copy" data-value="${esc(value)}">Copy</button></div>`;
+}
+
+function renderConnect() {
+  const o = location.origin;
+  const c = state.credentials;
+  const url = (id) => o + '/' + id;
+  const ke = c['mpesa-ke'], tz = c['mpesa-tz'], at = c.airtel, ys = c.yas, az = c.azampay;
+  const snippets = {
+    'mpesa-tz': `# 1. Encrypt the API key with the public key (RSA, PKCS#1 v1.5, base64) and send it as the bearer token
+GET ${url('mpesa-tz')}/sandbox/ipg/v2/vodacomTZN/getSession/
+# 2. Encrypt the returned session ID the same way, then:
+POST ${url('mpesa-tz')}/sandbox/ipg/v2/vodacomTZN/c2bPayment/singleStage/
+# The response arrives only after you answer the prompt here. See examples/mpesa-tz.mjs`,
+    'mpesa-ke': `TOKEN=$(curl -s -u ${ke.consumerKey}:${ke.consumerSecret} \\
+  "${url('mpesa-ke')}/oauth/v1/generate?grant_type=client_credentials" | sed 's/.*"access_token":"\\([^"]*\\)".*/\\1/')
+
+curl -s ${url('mpesa-ke')}/mpesa/stkpush/v1/processrequest \\
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \\
+  -d '{"BusinessShortCode":"${ke.shortcode}","Password":"${btoa(ke.shortcode + ke.passkey + '20261112093000')}","Timestamp":"20261112093000","TransactionType":"CustomerPayBillOnline","Amount":100,"PartyA":"254708374149","PartyB":"${ke.shortcode}","PhoneNumber":"254708374149","CallBackURL":"http://localhost:3000/callback","AccountReference":"ORDER-1","TransactionDesc":"Test"}'`,
+    airtel: `TOKEN=$(curl -s ${url('airtel')}/auth/oauth2/token -H "Content-Type: application/json" \\
+  -d '{"client_id":"${at.clientId}","client_secret":"${at.clientSecret}","grant_type":"client_credentials"}' | sed 's/.*"access_token":"\\([^"]*\\)".*/\\1/')
+
+curl -s ${url('airtel')}/merchant/v1/payments/ \\
+  -H "Authorization: Bearer $TOKEN" -H "X-Country: TZ" -H "X-Currency: TZS" -H "Content-Type: application/json" \\
+  -d '{"reference":"Order 1","subscriber":{"country":"TZ","currency":"TZS","msisdn":"689123456"},"transaction":{"amount":5000,"country":"TZ","currency":"TZS","id":"order-1"}}'`,
+    yas: `TOKEN=$(curl -s ${url('yas')}/token \\
+  -d "username=${ys.username}&password=${ys.password}&grant_type=password" | sed 's/.*"access_token":"\\([^"]*\\)".*/\\1/')
+
+curl -s ${url('yas')}/API/BillerPayment/BillerPay \\
+  -H "Authorization: bearer $TOKEN" -H "Username: ${ys.username}" -H "Password: ${ys.password}" -H "Content-Type: application/json" \\
+  -d '{"CustomerMSISDN":"255712345678","BillerMSISDN":"${ys.billerMsisdn}","Amount":5000,"Remarks":"Order 1","ReferenceID":"order-1"}'`,
+    azampay: `TOKEN=$(curl -s ${url('azampay')}/AppRegistration/GenerateToken -H "Content-Type: application/json" \\
+  -d '{"appName":"${az.appName}","clientId":"${az.clientId}","clientSecret":"${az.clientSecret}"}' | sed 's/.*"accessToken":"\\([^"]*\\)".*/\\1/')
+
+curl -s ${url('azampay')}/azampay/mno/checkout \\
+  -H "Authorization: Bearer $TOKEN" -H "X-API-Key: ${az.apiKey}" -H "Content-Type: application/json" \\
+  -d '{"accountNumber":"255621234567","amount":"5000","currency":"TZS","externalId":"order-1","provider":"Halopesa"}'`,
+  };
+  const creds = {
+    'mpesa-tz': [['API key', tz.apiKey], ['Public key', tz.publicKey], ['Service provider code', tz.serviceProviderCode]],
+    'mpesa-ke': [['Consumer key', ke.consumerKey], ['Consumer secret', ke.consumerSecret], ['Shortcode', ke.shortcode], ['Passkey', ke.passkey]],
+    airtel: [['Client ID', at.clientId], ['Client secret', at.clientSecret]],
+    yas: [['Username', ys.username], ['Password', ys.password], ['Biller MSISDN', ys.billerMsisdn]],
+    azampay: [['App name', az.appName], ['Client ID', az.clientId], ['Client secret', az.clientSecret], ['API key', az.apiKey]],
+  };
+  const cards = state.providers.map((p) => `
+    <section class="panel pad">
+      <h2 style="margin-bottom:2px"><span class="flag">${p.country}</span>${esc(p.name)}</h2>
+      <p class="hint" style="margin-bottom:8px">${esc(p.api)}</p>
+      ${copyRow(`Base URL (replaces ${esc(p.realBaseUrl)})`, url(p.id))}
+      ${creds[p.id].map(([l, v]) => copyRow(l, v)).join('')}
+      <details><summary>Try it from a terminal</summary><pre style="white-space:pre;overflow:auto;background:#f3f6f5;border:1px solid #e3e9e6;border-radius:6px;padding:9px 10px">${esc(snippets[p.id])}</pre>
+        <button class="btn" data-action="copy" data-value="${esc(snippets[p.id])}">Copy commands</button></details>
+    </section>`).join('');
+  const magic = Object.entries(state.magic).map(([suffix, outcome]) => `<tr><td class="mono">2557 0000 ${suffix.slice(1)} · 2547 0000 ${suffix.slice(1)}</td><td>${LABEL[outcome]}</td></tr>`).join('');
+  return `<h2>Connect your app</h2>
+    <p class="hint" style="margin-bottom:14px;max-width:75ch">Change the base URL in your payment code to the one below and keep everything else. Other credentials are accepted too unless strict credentials is on.</p>
+    <div class="grid2">${cards}
+      <section class="panel pad"><h2>Test phone numbers</h2>
+        <p class="hint" style="margin-bottom:6px">These customers always behave the same way, with no clicking. Use them in automated tests.</p>
+        <table><thead><tr><th>Number ends in</th><th>Customer always</th></tr></thead><tbody>${magic}</tbody></table>
+        <p class="hint" style="margin-top:10px">Or send the header <code>X-Pesalab-Scenario: cancelled</code> with a single request.</p>
+      </section>
+    </div>`;
+}
+
+// ---------- render ----------
+function render() {
+  if (!state) return;
+  renderHeader();
+  const main = $('#main');
+  if (view === 'payments') return renderPayments();
+  const active = document.activeElement;
+  if (main.contains(active) && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName)) return; // do not disturb typing
+  const openLabels = [...main.querySelectorAll('details[open] > summary')].map((s) => s.parentElement.parentElement.textContent.slice(0, 80));
+  main.innerHTML = { requests: renderRequests, customers: renderCustomers, settings: renderSettings, connect: renderConnect }[view]();
+  main.querySelectorAll('details > summary').forEach((s) => { if (openLabels.includes(s.parentElement.parentElement.textContent.slice(0, 80))) s.parentElement.open = true; });
+}
+
+// ---------- events ----------
+document.addEventListener('click', async (e) => {
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+  const { action, value, id } = el.dataset;
+  if (action === 'view') { e.preventDefault(); view = value; history.replaceState(null, '', '#' + value); $('#main').innerHTML = ''; render(); }
+  else if (action === 'mode') await api('settings', 'PATCH', { mode: value });
+  else if (action === 'filter') { providerFilter = value; render(); }
+  else if (action === 'select') { selected = id; render(); }
+  else if (action === 'closeDetail') { selected = null; render(); }
+  else if (action === 'resolve') await api(`transactions/${id}/resolve`, 'POST', { outcome: value });
+  else if (action === 'reverse') { await api(`transactions/${id}/reverse`, 'POST'); toast('Payment reversed'); }
+  else if (action === 'replay') { const a = await api(`transactions/${id}/callbacks/${el.dataset.cb}/replay`, 'POST'); toast(a.ok ? 'Callback sent again' : 'Your app did not accept the callback'); }
+  else if (action === 'queue') { queuePick = $('#queuePick').value; await api('scenarios', 'POST', { outcome: queuePick }); }
+  else if (action === 'clearQueue') await api('scenarios', 'DELETE');
+  else if (action === 'copy') { await navigator.clipboard.writeText(value); toast('Copied'); }
+  else if (action === 'reset') { selected = null; await api('reset', 'POST'); toast('Sandbox cleared'); }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.matches('tr.row')) e.target.click();
+});
+
+document.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const data = Object.fromEntries(new FormData(f));
+  if (f.dataset.pin) await api(`transactions/${f.dataset.pin}/resolve`, 'POST', { pin: data.pin });
+  else if (f.id === 'c2bForm') { await api('c2b/pay', 'POST', data); f.amount.value = ''; }
+  else if (f.id === 'walletForm') { if (data.balance === '') delete data.balance; await api('wallets', 'POST', data); f.reset(); document.activeElement.blur(); load(); }
+});
+
+document.addEventListener('change', async (e) => {
+  const el = e.target;
+  if (el.id === 'autoOutcome') return api('settings', 'PATCH', { autoOutcome: el.value });
+  if (el.id === 'queuePick') { queuePick = el.value; return; }
+  if (el.dataset.setting) {
+    const v = el.type === 'checkbox' ? el.checked : el.type === 'number' ? Number(el.value) : el.value;
+    const patch = el.dataset.setting.split('.').reduceRight((acc, key) => ({ [key]: acc }), v);
+    await api('settings', 'PATCH', patch);
+    toast('Saved');
+  } else if (el.dataset.wallet) {
+    await api('wallets', 'POST', { msisdn: el.dataset.wallet, [el.dataset.key]: el.value });
+    toast('Saved');
+  } else if (el.dataset.float) {
+    await api('floats', 'PATCH', { provider: el.dataset.float, amount: Number(el.value) });
+    toast('Saved');
+  }
+});
+
+let refresh;
+const events = new EventSource(API + 'events');
+events.onmessage = () => { clearTimeout(refresh); refresh = setTimeout(load, 60); };
+load();
+</script>
+</body>
+</html>

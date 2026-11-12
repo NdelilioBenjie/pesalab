@@ -1,0 +1,48 @@
+{
+  "name": "pesalab",
+  "version": "0.1.0",
+  "description": "A local mobile money sandbox for East Africa. Imitates M-Pesa (Kenya and Tanzania), Airtel Money, Mixx by Yas and AzamPay on your laptop, with a dashboard to trigger every payment outcome.",
+  "type": "module",
+  "bin": {
+    "pesalab": "bin/pesalab.js"
+  },
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node bin/pesalab.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "keywords": [
+    "mpesa",
+    "m-pesa",
+    "daraja",
+    "vodacom",
+    "airtel-money",
+    "mixx-by-yas",
+    "tigo-pesa",
+    "halopesa",
+    "azampay",
+    "mobile-money",
+    "tanzania",
+    "kenya",
+    "sandbox",
+    "simulator",
+    "stk-push",
+    "ussd-push",
+    "testing",
+    "fintech"
+  ],
+  "license": "MIT"
+}
