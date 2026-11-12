@@ -15,6 +15,8 @@ a button, a test phone number, or one line in a test.
 
 No account, no internet, no tunnel, no dependencies.
 
+![A Kenyan STK push from a Node script appears on the simulated phone, the customer enters a PIN, and the payment shows as paid with its callback delivered](https://raw.githubusercontent.com/NdelilioBenjie/pesalab/main/media/demo.gif)
+
 ## Start it
 
 Requires Node.js 18.17 or newer.
